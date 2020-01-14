@@ -20,9 +20,10 @@
 #' }
 #'
 #' @examples
+#' data(C)
+#' data(H)
 #' ##W = NULL, PCMS solution is calculated
 #' WPCMS(C, H)$X
-#'
 #' ##WPCMS solution
 #' W = matrix(runif(length(C)), dim(C))
 #' WPCMS(C, H, W)$X

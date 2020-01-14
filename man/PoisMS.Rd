@@ -50,6 +50,8 @@ The solution can be calculated via iterating the second order approximation of t
 The spatial coordiantes of the resulting reconstruction are presented in \eqn{X}.
 }
 \examples{
+data(C)
+data(H)
 ##PoisMS solution
 alpha = 1
 beta = log(mean(C))

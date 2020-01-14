@@ -20,6 +20,8 @@ Reconstruction plots.
 This function allows to plot reconstructed chromatin conformation \emph{X} and corresponding contact matrix approximation \emph{XX'}.
 }
 \examples{
+data(C)
+data(H)
 ##Find WPCMS reconstruction
 X = WPCMS(C, H)$X
 ##Plot contact matrix approximation

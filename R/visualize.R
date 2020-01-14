@@ -9,6 +9,8 @@
 #' @return Reconstruction plots.
 #'
 #' @examples
+#' data(C)
+#' data(H)
 #' ##Find WPCMS reconstruction
 #' X = WPCMS(C, H)$X
 #' ##Plot contact matrix approximation

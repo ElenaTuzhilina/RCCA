@@ -22,6 +22,8 @@
 #' }
 #'
 #' @examples
+#' data(C)
+#' data(H)
 #' ##PoisMS solution
 #' alpha = 1
 #' beta = log(mean(C))
