@@ -38,9 +38,11 @@ The spatial coordiantes of the resulting reconstruction are presented in \eqn{X}
 \examples{
 data(C)
 data(H)
-##W = NULL, PCMS solution is calculated
+
+##W = NULL, the PCMS solution is calculated
 WPCMS(C, H)$X
-##WPCMS solution
+
+##The weighted PCMS solution is calculated
 W = matrix(runif(length(C)), dim(C))
 WPCMS(C, H, W)$X
 

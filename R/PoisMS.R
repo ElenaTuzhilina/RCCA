@@ -8,7 +8,7 @@
 #' @param C a square symmetric matrix representing a Hi-C contact matrix.
 #' @param H a spline basis matrix. By default assumed to have orthogonal columns. If not, orthogonalized via QR decomposition.
 #' @param alpha,beta scaling and centering constants for Poisson model.
-#' @param X0 an initialization for \eqn{X} of the PoisMS algorithm. If \code{X0 = NULL}, the PCMS warm start is considered.
+#' @param X0 an initialization for \eqn{X} of the PoisMS algorithm. If \code{X0 = NULL}, the PCMS warm start is considered. Note that changing this parameter can considerably increase the PoisMS algorithm convergence speed.
 #' @param eps_wpcms,eps_poisms positive convergence tolerances for WPCMS inner loop and PoisMS outer loop.
 #' @param maxiter,maxepoch integers giving the maximal numbers of iterations for WPCMS inner loop and PoisMS outer loop.
 #' @param verbose_wpcms,verbose_poisms logical. If \code{TRUE}, the WPCMS loss after each iteration of inner loop and PoisMS loss after each epoch of outer loop are printed.
@@ -24,7 +24,6 @@
 #' @examples
 #' data(C)
 #' data(H)
-#' ##PoisMS solution
 #' alpha = 1
 #' beta = log(mean(C))
 #' PoisMS(C, H, alpha, beta)$X

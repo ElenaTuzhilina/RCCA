@@ -25,7 +25,7 @@ PoisMS(
 
 \item{alpha, beta}{scaling and centering constants for Poisson model.}
 
-\item{X0}{an initialization for \eqn{X} of the PoisMS algorithm. If \code{X0 = NULL}, the PCMS warm start is considered.}
+\item{X0}{an initialization for \eqn{X} of the PoisMS algorithm. If \code{X0 = NULL}, the PCMS warm start is considered. Note that changing this parameter can considerably increase the PoisMS algorithm convergence speed.}
 
 \item{eps_wpcms, eps_poisms}{positive convergence tolerances for WPCMS inner loop and PoisMS outer loop.}
 
@@ -52,7 +52,6 @@ The spatial coordiantes of the resulting reconstruction are presented in \eqn{X}
 \examples{
 data(C)
 data(H)
-##PoisMS solution
 alpha = 1
 beta = log(mean(C))
 PoisMS(C, H, alpha, beta)$X
