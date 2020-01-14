@@ -7,7 +7,7 @@
 #'
 #' @param C a square symmetric matrix representing a Hi-C contact matrix.
 #' @param H a spline basis matrix. By default assumed to have orthogonal columns. If not, orthogonalized via QR decomposition.
-#' @param alpha,beta scaling and centering constants for Poisson model.
+#' @param alpha,beta scaling and centering constants for Poisson model. By default, \code{alpha = 1, beta = log(mean(C))}.
 #' @param X0 an initialization for \eqn{X} of the PoisMS algorithm. If \code{X0 = NULL}, the PCMS warm start is considered. Note that changing this parameter can considerably increase the PoisMS algorithm convergence speed.
 #' @param eps_wpcms,eps_poisms positive convergence tolerances for WPCMS inner loop and PoisMS outer loop.
 #' @param maxiter,maxepoch integers giving the maximal numbers of iterations for WPCMS inner loop and PoisMS outer loop.
@@ -24,13 +24,11 @@
 #' @examples
 #' data(C)
 #' data(H)
-#' alpha = 1
-#' beta = log(mean(C))
-#' PoisMS(C, H, alpha, beta)$X
+#' PoisMS(C, H)$X
 #'
 #' @export PoisMS
 
-PoisMS = function(C, H, alpha = 1, beta, X0 = NULL, eps_wpcms = 1e-6, maxiter = 100, verbose_wpcms = FALSE, eps_poisms = 1e-6, maxepoch = 100, verbose_poisms = FALSE){
+PoisMS = function(C, H, alpha = 1, beta = log(mean(C)), X0 = NULL, eps_wpcms = 1e-6, maxiter = 100, verbose_wpcms = FALSE, eps_poisms = 1e-6, maxepoch = 100, verbose_poisms = FALSE){
   #Orthogonalize H
   QR = qr(H)
   H = qr.Q(QR)

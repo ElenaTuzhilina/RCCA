@@ -8,7 +8,7 @@ PoisMS(
   C,
   H,
   alpha = 1,
-  beta,
+  beta = log(mean(C)),
   X0 = NULL,
   eps_wpcms = 1e-06,
   maxiter = 100,
@@ -23,7 +23,7 @@ PoisMS(
 
 \item{H}{a spline basis matrix. By default assumed to have orthogonal columns. If not, orthogonalized via QR decomposition.}
 
-\item{alpha, beta}{scaling and centering constants for Poisson model.}
+\item{alpha, beta}{scaling and centering constants for Poisson model. By default, \code{alpha = 1, beta = log(mean(C))}.}
 
 \item{X0}{an initialization for \eqn{X} of the PoisMS algorithm. If \code{X0 = NULL}, the PCMS warm start is considered. Note that changing this parameter can considerably increase the PoisMS algorithm convergence speed.}
 
@@ -52,8 +52,6 @@ The spatial coordiantes of the resulting reconstruction are presented in \eqn{X}
 \examples{
 data(C)
 data(H)
-alpha = 1
-beta = log(mean(C))
-PoisMS(C, H, alpha, beta)$X
+PoisMS(C, H)$X
 
 }
