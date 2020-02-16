@@ -23,7 +23,14 @@
 #'
 #' @examples
 #' data(C)
-#' data(H)
+#'
+#' #create spline basis matrix
+#' H = bs(1:ncol(C), df = 5)
+#' 
+#' #orthogonalize H using QR decomposition
+#' H = qr.Q(qr(H))
+#' 
+#' #run PoisMS approach
 #' PoisMS(C, H)$X
 #'
 #' @export PoisMS

@@ -19,7 +19,8 @@ Description:
 Imports: 
 	ggplot2,
 	plotly,
-	fields	
+	fields,
+	splines	
 Suggests: 
     knitr,
     rmarkdown

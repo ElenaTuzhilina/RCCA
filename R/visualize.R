@@ -10,18 +10,23 @@
 #'
 #' @examples
 #' data(C)
-#' data(H)
+#'
+#' #create spline basis matrix
+#' H = bs(1:ncol(C), df = 5)
 #' 
-#' ##Find WPCMS reconstruction
+#' #orthogonalize H using QR decomposition
+#' H = qr.Q(qr(H))
+#' 
+#' #find WPCMS reconstruction
 #' X = WPCMS(C, H)$X
 #' 
-#' ##Plot contact matrix approximation
+#' #plot contact matrix approximation
 #' visualize(X, type = 'heatmap')
 #' 
-#' ##Plot projection of reconstructed chromatin conformation
+#' #plot projection of reconstructed chromatin conformation
 #' visualize(X, type = 'projection')
 #' 
-#' ##Plot 3D model of reconstructed chromatin conformation
+#' #plot 3D model of reconstructed chromatin conformation
 #' visualize(X, type = '3D')
 #'
 #' @export visualize
