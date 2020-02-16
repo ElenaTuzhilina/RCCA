@@ -23,7 +23,7 @@
 #' data(C)
 #' 
 #' #create spline basis matrix
-#' H = bs(1:ncol(C), df = 5)
+#' H = splines::bs(1:ncol(C), df = 5)
 #' 
 #' #orthogonalize H using QR decomposition
 #' H = qr.Q(qr(H))
