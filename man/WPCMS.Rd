@@ -37,12 +37,17 @@ The spatial coordiantes of the resulting reconstruction are presented in \eqn{X}
 }
 \examples{
 data(C)
-data(H)
 
-##W = NULL, the PCMS solution is calculated
+#create spline basis matrix
+H = bs(1:ncol(C), df = 5)
+
+#orthogonalize H using QR decomposition
+H = qr.Q(qr(H))
+
+#W = NULL, the PCMS solution is calculated
 WPCMS(C, H)$X
 
-##The weighted PCMS solution is calculated
+#WPCMS solution for some random weights matrix W
 W = matrix(runif(length(C)), dim(C))
 WPCMS(C, H, W)$X
 
