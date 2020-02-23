@@ -33,7 +33,7 @@
 
 visualize = function(X, index = 1:nrow(X), type = 'projection'){
   C_hat = X%*%t(X)
-  if(type == 'heatmap') fields::image.plot(C_hat, xaxt = 'n', yaxt = 'n')
+  if(type == 'heatmap') return(fields::image.plot(C_hat, xaxt = 'n', yaxt = 'n'))
 
   n = nrow(X)
   before_centromere = which(index < (n * 0.45))
@@ -49,9 +49,9 @@ visualize = function(X, index = 1:nrow(X), type = 'projection'){
     lines(x, y, col = 'orange', lwd = 2)
     lines(x[after_centromere], y[after_centromere], col = 'darkturquoise', lwd = 2)
   }
-  if(type == 'projection') pairs(X, panel = panelf, cex.labels = 5)
+  if(type == 'projection') return(pairs(X, panel = panelf, cex.labels = 5))
 
-  if(type == '3D') plotly::plot_ly(x = X[,1], y = X[,2], z = X[,3], type = 'scatter3d', mode = 'lines+markers',
-              line = list(width = 6, color = col), marker = list(size = 3.5, color = col))
+  if(type == '3D') return(plotly::plot_ly(x = X[,1], y = X[,2], z = X[,3], type = 'scatter3d', mode = 'lines+markers',
+              line = list(width = 6, color = col), marker = list(size = 3.5, color = col)))
 }
 
