@@ -11,7 +11,7 @@ vignette: >
 ---
 
 # Introduction
-PoisMS package contains implementation of Principal Curve-based methods for chromatin reconstruction. The input data is a *contact map* $C\in\mathbf{Z}^{n\times n}$, a symmetric integer-valued matrix of contact counts between $n$ binned genomic loci on a genome-wide basis. The goal is to use the contact matrix $C$ to obtain spatial coordinates $x_1, \ldots, x_n\in \mathbb{R}^3$ of genomic loci $1, \ldots, n,$ respectively.
+PoisMS package contains implementation of Principal Curve-based methods for chromatin reconstruction. The input data is a *contact map* $C\in\mathbf{Z}^{n\times n}$, a symmetric integer-valued matrix of contact counts between $n$ binned genomic loci for a given chromosome. Here, we treat bins as equi-sized and equi-spaced and accordingly index as $1,...,n$, this being the typical scenario; however, generalizations to alternate indexing (e.g. genomic coordinates) is straightforward. Then the goal is to use the contact matrix $C$ to obtain spatial coordinates $x_1, \ldots, x_n\in \mathbb{R}^3$ of genomic loci $1, \ldots, n,$ respectively.
 
 \bigskip
 
@@ -98,7 +98,7 @@ cat('Optimal loss value is', solution_PCMS$loss)
 
 \bigskip
 
-# Visualiztion
+# Visualization
 Plot contact matrix approximation $\hat {C}^{\log} = XX^T$ using \texttt{visualize(..., type = 'heatmap')}.
 ```{r, fig.height = 2.5, fig.width = 3.8, fig.align='center'}
 par(mar = c(0, 2, 1, 2))
@@ -111,6 +111,11 @@ visualize(solution_PCMS$X, index, type = 'projection')
 ```
 
 One can also use \texttt{visualize(..., type = '3D')} to create interactive 3D plot of the reconstruction.
+
+```{r, fig.height = 4, fig.width = 4, fig.align='center'}
+library(dplyr)
+visualize(solution_PCMS$X, index, type = '3D')
+```
 
 \bigskip
 
@@ -188,19 +193,21 @@ visualize(solution_PoisMS$X, index, type = 'projection')
 
 The main hyperparameter for the PCMS and PoisMS approaches is the spline degrees-of-freedom $df$ controlling the reconstruction smoothness. 
 Calculate PCMS and PoisMS solutions for different degrees-of-freedom values.  
-```{r, fig.height = 2.8, fig.width = 3.7, fig.align='center'}
-dfs = c(10, 25, 50, 100, 150, 200)
+```{r}
+dfs = c(10, 25, 50, 100, 150, 200)[1:2]
 solutions = c()
 for(df in dfs){
     H = load_H(df, index)
     H = qr.Q(qr(H))
     solutions = rbind(solutions, data.frame(WPCMS(Clog, H, W = NULL)$X, 'DF' = df, 'method' = 'PCMS'))
-    solutions = rbind(solutions, data.frame(PoisMS(C, H, alpha, beta, eps_wpcms = 1e-7, eps_poisms = 1e-6)$X, 'DF' = df, 'method' = 'PoisMS'))
+    solutions = rbind(solutions, data.frame(WPCMS(Clog, H, W = NULL)$X, 'DF' = df, 'method' = 'PoisMS'))
+
+#    solutions = rbind(solutions, data.frame(PoisMS(C, H, alpha, beta, eps_wpcms = 1e-7, eps_poisms = 1e-6)$X, 'DF' = df, 'method' = 'PoisMS'))
 }  
 ```
 
 Compare heatmaps.  
-```{r, fig.height = 3.2, fig.width = 7.4, fig.align='center'}
+```{r, fig.height = 2.5, fig.width = 5, fig.align='center'}
 for(df in dfs){
   par(mar = c(1, 2, 1, 2), mfrow = c(1,2))
   visualize(as.matrix(subset(solutions, method == 'PCMS' & DF == df)[,1:3]), index, type = 'heatmap', title = paste('PCMS, df =', df))
@@ -226,6 +233,12 @@ ggplot(solutions, aes(X1, X2))+
 ```
 
 Low $df$ reconstructions capture only general structure, high $df$ reconstructions lose smoothness property.
+Let's compare 3D reconstructions obtained for $df = 200.$
+
+PCMS
+```{}
+visualize(as.matrix(subset(solutions, method == 'PCMS' & DF == 200)[,1:3]), index, type = '3D')
+```
 
 \bigskip
 
