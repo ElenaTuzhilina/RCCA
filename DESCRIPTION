@@ -12,7 +12,7 @@ Authors@R:
            email = "hastie@stanford.edu"),
 	person(given = "Mark",
            family = "Segal",
-           role = c("ctb"),
+           role = c("aut"),
            email = "mark.segal@ucsf.edu"))
 Description: 
 	This package allows to compute chromatin reconstruction using Hi-C contact matrix. The implemented approaches are based on Principal Curve technique modeling the chromatin directly by a smooth curve. The baseline method, Principal Curve Metric Scaling (PCMS), is inspired by Classical Multidimensional Scaling; it has a simple solution that can be found via the Singular Value Decomposition. Weighted Principal Curve Metric Scaling (WPCMS) is a weighted generalization of the PCMS technique that allows to control the influence of particular elements of the contact matrix on the resulting conformation reconstruction. Although being based on PCMS, the WPCMS approach requires an iterative algorithm to find the corresponding solution. Finally, the Poisson Metric Scaling (PoisMS) method is based on a Poisson model for the elements of contact matrix; it repeatedly calculates the second order approximation of the Poisson log likelihood and optimizes the quadratic approximation by means of WPCMS algorithm. All of the methods output the spatial coordinates of the resulting chromatin conformation reconstruction.
@@ -20,8 +20,7 @@ Imports:
 	ggplot2,
 	plotly,
 	fields,
-	splines,
-	dplry	
+	splines	
 Suggests: 
     knitr,
     rmarkdown
