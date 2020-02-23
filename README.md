@@ -1,5 +1,5 @@
 # PoisMS package
-This package is an R implementation of *Principal Curve mertic Scaling* and *Poisson Metric Scaling*. 
+This package is an R implementation of *Principal Curve Mertic Scaling (PCMS)* and *Poisson Metric Scaling (PoisMS)*. 
 
 Use the following code to download the package:
 
