@@ -245,7 +245,6 @@ for(df in dfs){
 
 The loss is decreasing with the growth of $df$.
 ```{r, fig.height = 3, fig.width = 6, fig.align='center'}
-library(ggplot2)
 data = data.frame(dfs, loss)
 g = ggplot(data, aes(dfs, loss))+
   geom_point(color = 'blue', size = 2)+
