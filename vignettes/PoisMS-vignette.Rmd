@@ -1,0 +1,272 @@
+---
+title: "Chromatin conformation reconstruction via PoisMS package"
+author: "Elena Tuzhilina"
+date: "February 22, 2020"
+output:
+  html_document:
+vignette: >
+  %\VignetteIndexEntry{Chromatine conformation reconstruction via PoisMS package}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+# Introduction
+PoisMS package contains implementation of Principal Curve-based methods for chromatin reconstruction. The input data is a *contact map* $C\in\mathbf{Z}^{n\times n}$, a symmetric integer-valued matrix of contact counts between $n$ binned genomic loci on a genome-wide basis. The goal is to use the contact matrix $C$ to obtain spatial coordinates $x_1, \ldots, x_n\in \mathbb{R}^3$ of genomic loci $1, \ldots, n,$ respectively.
+
+\bigskip
+
+# Contact matrix
+In our experiments we use Hi-C data for IMR90 cells for chromosome 20 and resolution 100kb obtained from the Gene Expression Omnibus (check the package for different Hi-C data available).
+
+```{r, message=FALSE}
+library(PoisMS)
+data(IMR90_100kb_chr20)
+C = data.matrix(IMR90_100kb_chr20)
+n = ncol(C)
+```
+
+Usually, contact matrices are diagonally dominant, so we apply log-transformation along with some centering and scaling to the contact matrix prior to visualizing it, i.e. we consider $C^{\log} = \frac{\log(C+\epsilon)-\beta }{\alpha}$.
+
+```{r, message=FALSE, fig.height = 2.5, fig.width = 3.8, fig.align='center'}
+library(fields)
+alpha = 1
+eps = 0.001
+beta = log(mean(C))
+Clog = (log(C + eps) - beta)/alpha
+par(mar = c(0, 2, 1, 2))
+image.plot(Clog, xaxt='n', yaxt = 'n', mar = c(0, 2, 1, 2))
+```
+
+\newpage
+
+Note that there are some unobserved loci near the centromere; we save the genomic coordinates of $599$ observed loci and drop unobserved ones from the contact matrix.
+
+```{r, fig.height = 2.5, fig.width = 3.8, fig.align='center'}
+index = which(diag(C) != 0)
+n_obs = length(index)
+par(mar = c(0, 2, 1, 2))
+Clog = Clog[index, index]
+image.plot(Clog, xaxt='n', yaxt = 'n')
+```
+
+\bigskip
+
+# Principal Curve
+Principal Curve-based approaches model chromatin  by a smooth curve, assuming
+$$x_1,\ldots,x_n\in \gamma\text{, where }\gamma\text{ is a smooth one-dimensional curve in $\mathbb{R}^3$}.$$
+We model each coordinate of $\gamma$ by a cubic spline with $k$ degrees-of-freedom. Thus the previous constraint can be written in matrix form as $X=H\Theta.$
+Here:
+
+* $X\in\mathbf{R}^{n\times 3}$ is the matrix of genomic loci coordinates,
+
+* $H\in\mathbf{R}^{n\times k}$ is the matrix of spline basis evaluations at genomic coordinates, i.e. $H_{i\ell} = h_\ell(i)$ where $h_1(t),\ldots,h_k(t)$  are cubic spline basis functions,
+
+* $\Theta$ is the matrix of unknown parameters.
+
+In the presence of unobserved genomic loci one can use the following function to construct matrix $H$.
+```{r}
+library(splines)
+load_H = function(df, index){
+  n_knots = df - 2
+  knots = unique(seq(from = 1, to = max(index), length = n_knots))
+  knots = knots[-c(1,n_knots)]
+  H = bs(index, knots = knots, intercept = TRUE)
+  return(H)
+}
+```
+
+Example of spline basis with $10$ degrees-of-freedom evaluated at $599$ points corresponding to observed loci.
+```{r, fig.height = 2, fig.width = 6, fig.align='center'}
+H = load_H(20, index)
+par(mar = c(2, 5, 0, 2))
+matplot(H, type = 'l', lwd = 2)
+```
+
+\bigskip
+
+# PCMS
+*Principal Curve Metric Scaling (PCMS)* solves (classical) MDS problem equipped with the smooth curve constraint:
+$$\text{minimize } \|C-XX^T\|^2_F \text{ w.r.t. } 
+\Theta\in\mathbb{R}^{k\times 3} \text{ subject to } X = H\Theta.$$
+
+PCMS approach assumes $H$ to be orthogonal matrix. Orthogonalize $H$ from previous part by means of QR decomposition and run \texttt{WPCMS(..., W = NULL)} function to find PCMS reconstruction. To make the result to be compatible with Poisson Metric Scaling described below we apply PCMS technique to the log-transformed contact matrix $C^{\log}$.
+```{r}
+H = qr.Q(qr(H))
+solution_PCMS = WPCMS(Clog, H, W = NULL)
+cat('Optimal loss value is', solution_PCMS$loss)
+```
+
+\bigskip
+
+# Visualiztion
+Plot contact matrix approximation $\hat {C}^{\log} = XX^T$ using \texttt{visualize(..., type = 'heatmap')}.
+```{r, fig.height = 2.5, fig.width = 3.8, fig.align='center'}
+par(mar = c(0, 2, 1, 2))
+visualize(solution_PCMS$X, index, type = 'heatmap')
+```
+
+Plot projections of 3D reconstruction using \texttt{visualize(..., type = 'projection')}.
+```{r, fig.height = 4, fig.width = 4, fig.align='center'}
+visualize(solution_PCMS$X, index, type = 'projection')
+```
+
+One can also use \texttt{visualize(..., type = '3D')} to create interactive 3D plot of the reconstruction.
+
+\bigskip
+
+# WPCMS
+*Weighted Principal Curve Metric Scaling (WPCMS)* is a weighted generalization of PCMS problem:
+$$\text{minimize } \|W*(C-XX^T)\|^2_F \text{ w.r.t. } 
+\Theta\in\mathbb{R}^{k\times 3} \text{ subject to } X = H\Theta.$$
+Here $*$ refers to the Hadamard product and $W\in[0,1]^{n\times n}$ is some symmetric matrix of weights.
+
+Let's create some $W$, for example, using uniform distribution.
+```{r, fig.height = 2.5, fig.width = 3.7, fig.align='center'}
+set.seed(1)
+W = matrix(runif(n_obs*n_obs), n_obs, n_obs)
+W = (W + t(W))/2
+par(mar = c(0, 2, 1, 2))
+image.plot(W, xaxt='n', yaxt = 'n')
+```
+
+One can run \texttt{WPCMS(..., W = W)} to find WPCMS solution for log-transformed contact matrix $C^{log}$ and plot projections of WPCMS reconstruction. It takes 7 iterations to converge. 
+```{r}
+solution_WPCMS = WPCMS(Clog, H, W = W, verbose = TRUE, eps = 1e-7)
+```
+
+```{r, fig.height = 3.9, fig.width = 3.9, fig.align='center'}
+visualize(solution_WPCMS$X, index, type = 'projection')
+```
+
+Note that if $W$ is a binary matrix, i.e. $W\in \{0,1\}^{n\times n}$, WPCMS treats the elements with zero weights as missing.
+```{r, fig.height = 2.5, fig.width = 3.7, fig.align='center'}
+W = (W > 0.9) * 1
+par(mar = c(0, 2, 1, 2))
+image.plot(round(W), xaxt='n', yaxt = 'n')
+```
+
+Let's check how does the contact matrix approximation look like in the case of missing values.
+```{r}
+solution_WPCMS = WPCMS(Clog, H, W = W, eps = 1e-7, maxiter = 1000)
+cat('Takes', solution_WPCMS$iter, 'iterations to converge')
+```
+
+```{r, fig.height = 2.5, fig.width = 3.7, fig.align='center'}
+par(mar = c(0, 2, 1, 2))
+visualize(solution_WPCMS$X, index, type = 'heatmap')
+```
+
+\bigskip
+
+# PoisMS
+*Poisson Metric Scaling (PoisMS)* approach models contact counts by a Poisson distribution:
+$$C_{ij}\sim Pois(\lambda_{ij}),~~\log(\lambda_{ij}) = \alpha \langle x_i, x_j\rangle + \beta.$$ 
+Here $\alpha>0$ and $\beta\in\mathbb{R}$ are scaling and centering hyperparameters, respectively. The optimization problem is, therefore, to find minimum of the negative log-likelihood under the smooth curve constraint: 
+$$\text{minimize } \sum_{1 \leq i,j \leq n} \left[e^{\alpha \langle x_i, x_j\rangle + \beta} - C_{ij}\left(\alpha \langle x_i, x_j\rangle + \beta\right) \right] \text{ w.r.t. } X \text{ subject to } X = H\Theta.$$
+Since the log-transformation is implicitly introduced in the model through $\log(\lambda_{ij}) = \alpha \langle x_i, x_j\rangle + \beta,$ we apply the PoisMS technique to the original data $C$, but with the same $\alpha$ and $\beta$ from log-transformation. 
+
+Run \texttt{PoisMS} function to calculate the PoisMS solution, the algorithm converged in $8$ epochs.
+```{r, fig.height = 2.5, fig.width = 5, fig.align='center'}
+C = C[index, index]
+solution_PoisMS = PoisMS(C, H, alpha, beta, eps_wpcms = 1e-7, eps_poisms = 1e-6)
+solution_PoisMS$plot
+```
+
+Plot the corresponding contact matrix approximation.
+```{r, fig.height = 2.5, fig.width = 3.7, fig.align='center'}
+par(mar = c(0, 2, 1, 2))
+visualize(solution_PoisMS$X, index, type = 'heatmap')
+```
+Plot projections of 3D reconstruction.
+```{r, fig.height = 4, fig.width = 4, fig.align='center'}
+visualize(solution_PoisMS$X, index, type = 'projection')
+```
+
+\bigskip
+
+# Vary degrees-of-freedom
+
+The main hyperparameter for the PCMS and PoisMS approaches is the spline degrees-of-freedom $df$ controlling the reconstruction smoothness. 
+Calculate PCMS and PoisMS solutions for different degrees-of-freedom values.  
+```{r, fig.height = 2.8, fig.width = 3.7, fig.align='center'}
+dfs = c(10, 25, 50, 100, 150, 200)
+solutions = c()
+for(df in dfs){
+    H = load_H(df, index)
+    H = qr.Q(qr(H))
+    solutions = rbind(solutions, data.frame(WPCMS(Clog, H, W = NULL)$X, 'DF' = df, 'method' = 'PCMS'))
+    solutions = rbind(solutions, data.frame(PoisMS(C, H, alpha, beta, eps_wpcms = 1e-7, eps_poisms = 1e-6)$X, 'DF' = df, 'method' = 'PoisMS'))
+}  
+```
+
+Compare heatmaps.  
+```{r, fig.height = 3.2, fig.width = 7.4, fig.align='center'}
+for(df in dfs){
+  par(mar = c(1, 2, 1, 2), mfrow = c(1,2))
+  visualize(as.matrix(subset(solutions, method == 'PCMS' & DF == df)[,1:3]), index, type = 'heatmap', title = paste('PCMS, df =', df))
+  visualize(as.matrix(subset(solutions, method == 'PoisMS' & DF == df)[,1:3]), index, type = 'heatmap', title = paste('PoisMS, df =', df))
+}  
+```
+
+Compare projections.   
+```{r, fig.width = 7.4, fig.height = 19, fig.align='center'}
+library(ggplot2)
+before_centromere = which(index < (n * 0.45))
+after_centromere = which(index >= (n * 0.45))
+col = c(rep('orange', length(before_centromere)), rep('darkturquoise', length(after_centromere)))
+solutions = data.frame(solutions, col)
+solutions$DF = factor(paste('df =', solutions$DF), levels = paste('df =', dfs))
+ggplot(solutions, aes(X1, X2))+
+  geom_point(color = solutions$col)+
+  geom_path(color = solutions$col)+
+  facet_grid(rows = vars(DF), cols = vars(method), scales = 'free')+
+  xlab('x')+
+  ylab('y')+
+  theme_bw()
+```
+
+Low $df$ reconstructions capture only general structure, high $df$ reconstructions lose smoothness property.
+
+\bigskip
+
+# Pick optimal degrees-of-freedom value (PCMS example)
+
+Vary degrees-of-freedom value and calculate the loss value for each obtained PCMS reconstruction.
+```{r}
+dfs = seq(5, 200, 5)
+loss = c()
+for(df in dfs){
+  H = load_H(df, index)
+  H = qr.Q(qr(H))
+  solution = WPCMS(Clog, H, W = NULL)
+  loss = append(loss, solution$loss)
+}  
+```
+
+The loss is decreasing with the growth of $df$.
+```{r, fig.height = 3, fig.width = 6, fig.align='center'}
+library(ggplot2)
+data = data.frame(dfs, loss)
+g = ggplot(data, aes(dfs, loss))+
+  geom_point(color = 'blue', size = 2)+
+  geom_line(color = 'blue')+
+  scale_x_continuous(breaks =  seq(0, 200, 10))+
+  ylab('PCMS loss')+
+  xlab('df')
+g
+```
+
+Use segmented regression to determine the kink location (thus, optimal value of $df$).
+```{r, fig.height = 3, fig.width = 6, fig.align='center'}
+library(segmented)
+LR <- lm(loss ~ dfs, data = data)
+SR <- segmented(LR, seg.Z = ~ dfs, npsi = 1, tol = 1e-6, it.max = 1000)
+kink = SR$psi[2]
+prediction = predict(object = SR, newdata = data.frame('dfs' = c(min(dfs), kink, max(dfs))))
+newdata = data.frame('dfs' = c(min(dfs), kink, max(dfs)), 'loss' = prediction)
+g+
+  geom_line(newdata, mapping = aes(dfs, loss), colour = 'black', size = 0.8)+
+  geom_vline(xintercept = kink, color = 'red', size = 0.4, linetype = 'dashed')+
+  ggtitle(paste('Optimal df value is', round(kink)))
+```
+
