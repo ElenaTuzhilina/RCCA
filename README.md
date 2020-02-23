@@ -5,4 +5,5 @@ Use the following code to download the package:
 
 **devtools::install_github('https://github.com/ElenaTuzhilina/PoisMS')**
 
-Check *R documentation* as well as *vignette* for function descriptions and examples.
+Check *R documentation* and *vignette* file or visit https://elenatuzhilina.github.io/PoisMS/ 
+for function descriptions and examples.
