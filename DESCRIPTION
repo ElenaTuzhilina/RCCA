@@ -20,7 +20,8 @@ Imports:
 	ggplot2,
 	plotly,
 	fields,
-	splines	
+	splines,
+	dplry	
 Suggests: 
     knitr,
     rmarkdown

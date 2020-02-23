@@ -5,7 +5,7 @@
 #' @param X a matrix representing spatial coordinates of resulting chromatin reconstruction.
 #' @param index points where spline basis is evaluated; each corresponds to a particular genomic loci.
 #' @param type the type of plot returned. If \code{type = 'heatmap'}, the contact matrix approximation is returned. Set \code{type = 'projection'} and \code{type = '3D'} to output the projection and 3D model of chromatin conformation reconstruction, respectively.
-#' @param title optional, adds title to the \code{'heatmap'} or \code{'projection'} plot. Default value \code{title = NULL}.
+#' @param title optional, adds title to the plot. Default value \code{title = NULL}.
 #'
 #' @return Reconstruction plots.
 #'

@@ -1,6 +1,6 @@
 ---
 title: "Chromatin conformation reconstruction via PoisMS package"
-author: "Elena Tuzhilina"
+author: "Elena Tuzhilina, Trevor Hastie, Mark Segal"
 date: "February 22, 2020"
 output:
   html_document:
@@ -110,10 +110,9 @@ Plot projections of 3D reconstruction using \texttt{visualize(..., type = 'proje
 visualize(solution_PCMS$X, index, type = 'projection')
 ```
 
-One can also use \texttt{visualize(..., type = '3D')} to create interactive 3D plot of the reconstruction.
+One can also use \texttt{visualize(..., type = '3D')} to create an interactive 3D plot of the reconstruction.
 
-```{r, fig.height = 4, fig.width = 4, fig.align='center'}
-library(dplyr)
+```{r}
 visualize(solution_PCMS$X, index, type = '3D')
 ```
 
@@ -126,7 +125,7 @@ $$\text{minimize } \|W*(C-XX^T)\|^2_F \text{ w.r.t. }
 Here $*$ refers to the Hadamard product and $W\in[0,1]^{n\times n}$ is some symmetric matrix of weights.
 
 Let's create some $W$, for example, using uniform distribution.
-```{r, fig.height = 2.5, fig.width = 3.7, fig.align='center'}
+```{r, fig.height = 2.5, fig.width = 3.8, fig.align='center'}
 set.seed(1)
 W = matrix(runif(n_obs*n_obs), n_obs, n_obs)
 W = (W + t(W))/2
@@ -139,12 +138,12 @@ One can run \texttt{WPCMS(..., W = W)} to find WPCMS solution for log-transforme
 solution_WPCMS = WPCMS(Clog, H, W = W, verbose = TRUE, eps = 1e-7)
 ```
 
-```{r, fig.height = 3.9, fig.width = 3.9, fig.align='center'}
+```{r, fig.height = 4, fig.width = 4, fig.align='center'}
 visualize(solution_WPCMS$X, index, type = 'projection')
 ```
 
 Note that if $W$ is a binary matrix, i.e. $W\in \{0,1\}^{n\times n}$, WPCMS treats the elements with zero weights as missing.
-```{r, fig.height = 2.5, fig.width = 3.7, fig.align='center'}
+```{r, fig.height = 2.5, fig.width = 3.8, fig.align='center'}
 W = (W > 0.9) * 1
 par(mar = c(0, 2, 1, 2))
 image.plot(round(W), xaxt='n', yaxt = 'n')
@@ -156,7 +155,7 @@ solution_WPCMS = WPCMS(Clog, H, W = W, eps = 1e-7, maxiter = 1000)
 cat('Takes', solution_WPCMS$iter, 'iterations to converge')
 ```
 
-```{r, fig.height = 2.5, fig.width = 3.7, fig.align='center'}
+```{r, fig.height = 2.5, fig.width = 3.8, fig.align='center'}
 par(mar = c(0, 2, 1, 2))
 visualize(solution_WPCMS$X, index, type = 'heatmap')
 ```
@@ -178,7 +177,7 @@ solution_PoisMS$plot
 ```
 
 Plot the corresponding contact matrix approximation.
-```{r, fig.height = 2.5, fig.width = 3.7, fig.align='center'}
+```{r, fig.height = 2.5, fig.width = 3.8, fig.align='center'}
 par(mar = c(0, 2, 1, 2))
 visualize(solution_PoisMS$X, index, type = 'heatmap')
 ```
@@ -187,27 +186,31 @@ Plot projections of 3D reconstruction.
 visualize(solution_PoisMS$X, index, type = 'projection')
 ```
 
+Create 3D interactive plot.
+```{r}
+visualize(solution_PoisMS$X, index, type = '3D')
+```
+
+
 \bigskip
 
 # Vary degrees-of-freedom
 
-The main hyperparameter for the PCMS and PoisMS approaches is the spline degrees-of-freedom $df$ controlling the reconstruction smoothness. 
+The main hyperparameter for the PCMS and PoisMS approaches is the spline degrees-of-freedom $\operatorname{df}$ controlling the reconstruction smoothness. 
 Calculate PCMS and PoisMS solutions for different degrees-of-freedom values.  
 ```{r}
-dfs = c(10, 25, 50, 100, 150, 200)[1:2]
+dfs = c(10, 25, 50, 100, 150, 200)
 solutions = c()
 for(df in dfs){
     H = load_H(df, index)
     H = qr.Q(qr(H))
     solutions = rbind(solutions, data.frame(WPCMS(Clog, H, W = NULL)$X, 'DF' = df, 'method' = 'PCMS'))
-    solutions = rbind(solutions, data.frame(WPCMS(Clog, H, W = NULL)$X, 'DF' = df, 'method' = 'PoisMS'))
-
-#    solutions = rbind(solutions, data.frame(PoisMS(C, H, alpha, beta, eps_wpcms = 1e-7, eps_poisms = 1e-6)$X, 'DF' = df, 'method' = 'PoisMS'))
+    solutions = rbind(solutions, data.frame(PoisMS(C, H, alpha, beta, eps_wpcms = 1e-7, eps_poisms = 1e-6)$X, 'DF' = df, 'method' = 'PoisMS'))
 }  
 ```
 
 Compare heatmaps.  
-```{r, fig.height = 2.5, fig.width = 5, fig.align='center'}
+```{r, fig.height = 2.3, fig.width = 5.7, fig.align='center'}
 for(df in dfs){
   par(mar = c(1, 2, 1, 2), mfrow = c(1,2))
   visualize(as.matrix(subset(solutions, method == 'PCMS' & DF == df)[,1:3]), index, type = 'heatmap', title = paste('PCMS, df =', df))
@@ -216,29 +219,34 @@ for(df in dfs){
 ```
 
 Compare projections.   
-```{r, fig.width = 7.4, fig.height = 19, fig.align='center'}
+```{r, fig.width = 5, fig.height = 13, fig.align='center'}
 library(ggplot2)
 before_centromere = which(index < (n * 0.45))
 after_centromere = which(index >= (n * 0.45))
 col = c(rep('orange', length(before_centromere)), rep('darkturquoise', length(after_centromere)))
-solutions = data.frame(solutions, col)
-solutions$DF = factor(paste('df =', solutions$DF), levels = paste('df =', dfs))
-ggplot(solutions, aes(X1, X2))+
-  geom_point(color = solutions$col)+
-  geom_path(color = solutions$col)+
+solutions_col = data.frame(solutions, col)
+solutions_col$DF = factor(paste('df =', solutions$DF), levels = paste('df =', dfs))
+ggplot(solutions_col, aes(X1, X2))+
+  geom_point(color = solutions_col$col)+
+  geom_path(color = solutions_col$col)+
   facet_grid(rows = vars(DF), cols = vars(method), scales = 'free')+
   xlab('x')+
   ylab('y')+
   theme_bw()
 ```
 
-Low $df$ reconstructions capture only general structure, high $df$ reconstructions lose smoothness property.
-Let's compare 3D reconstructions obtained for $df = 200.$
+Low $\operatorname{df}$ reconstructions capture only general structure, high $\operatorname{df}$ reconstructions lose smoothness property.
 
-PCMS
-```{}
-visualize(as.matrix(subset(solutions, method == 'PCMS' & DF == 200)[,1:3]), index, type = '3D')
+Let's have a closer look at 3D reconstructions obtained via PCMS and PoisMS for $\operatorname{df} = 200$.
+```{r}
+visualize(as.matrix(subset(solutions, method == 'PCMS' & DF == 200)[,1:3]), index, type = '3D', title = 'PCMS')
 ```
+
+```{r}
+visualize(as.matrix(subset(solutions, method == 'PoisMS' & DF == 200)[,1:3]), index, type = '3D', title = 'PoisMS')
+```
+
+The PoisMS reconstruction tends to be more spherical-shaped. 
 
 \bigskip
 
@@ -256,7 +264,7 @@ for(df in dfs){
 }  
 ```
 
-The loss is decreasing with the growth of $df$.
+The loss is decreasing with the growth of $\operatorname{df}$.
 ```{r, fig.height = 3, fig.width = 6, fig.align='center'}
 data = data.frame(dfs, loss)
 g = ggplot(data, aes(dfs, loss))+
@@ -268,7 +276,7 @@ g = ggplot(data, aes(dfs, loss))+
 g
 ```
 
-Use segmented regression to determine the kink location (thus, optimal value of $df$).
+Use segmented regression to determine the kink location (thus, optimal value of $\operatorname{df}$).
 ```{r, fig.height = 3, fig.width = 6, fig.align='center'}
 library(segmented)
 LR <- lm(loss ~ dfs, data = data)
