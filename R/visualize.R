@@ -52,7 +52,7 @@ visualize = function(X, index = 1:nrow(X), type = 'projection', title = NULL){
   }
   if(type == 'projection') return(pairs(X, panel = panelf, cex.labels = 5, main = title))
 
-  if(type == '3D') return(plotly::plot_ly(x = X[,1], y = X[,2], z = X[,3], type = 'scatter3d', mode = 'lines+markers',
-              line = list(width = 6, color = col), marker = list(size = 3.5, color = col)))
+  if(type == '3D') return(plotly::layout(plotly::plot_ly(x = X[,1], y = X[,2], z = X[,3], type = 'scatter3d', mode = 'lines+markers',
+              line = list(width = 6, color = col), marker = list(size = 3.5, color = col)), title = title))
 }
 
