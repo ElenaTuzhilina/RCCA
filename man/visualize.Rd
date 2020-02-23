@@ -13,7 +13,7 @@ visualize(X, index = 1:nrow(X), type = "projection", title = NULL)
 
 \item{type}{the type of plot returned. If \code{type = 'heatmap'}, the contact matrix approximation is returned. Set \code{type = 'projection'} and \code{type = '3D'} to output the projection and 3D model of chromatin conformation reconstruction, respectively.}
 
-\item{title}{optional, adds title to the plot. Default value \code{title = NULL}.}
+\item{title}{optional, adds title to the \code{'heatmap'} or \code{'projection'} plot. Default value \code{title = NULL}.}
 }
 \value{
 Reconstruction plots.
