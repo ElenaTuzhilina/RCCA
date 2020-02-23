@@ -5,7 +5,7 @@
 #' @param X a matrix representing spatial coordinates of resulting chromatin reconstruction.
 #' @param index points where spline basis is evaluated; each corresponds to a particular genomic loci.
 #' @param type the type of plot returned. If \code{type = 'heatmap'}, the contact matrix approximation is returned. Set \code{type = 'projection'} and \code{type = '3D'} to output the projection and 3D model of chromatin conformation reconstruction, respectively.
-#' @param title optional, adds title to the plot. Default value \code{title = NULL}.
+#' @param title optional, adds title to the \code{'heatmap'} or \code{'projection'} plot. Default value \code{title = NULL}.
 #'
 #' @return Reconstruction plots.
 #'
@@ -53,7 +53,6 @@ visualize = function(X, index = 1:nrow(X), type = 'projection', title = NULL){
   if(type == 'projection') return(pairs(X, panel = panelf, cex.labels = 5, main = title))
 
   if(type == '3D') return(plotly::plot_ly(x = X[,1], y = X[,2], z = X[,3], type = 'scatter3d', mode = 'lines+markers',
-              line = list(width = 6, color = col), marker = list(size = 3.5, color = col))%>%
-                layout(title = title))
+              line = list(width = 6, color = col), marker = list(size = 3.5, color = col)))
 }
 
