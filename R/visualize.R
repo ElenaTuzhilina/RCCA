@@ -5,6 +5,7 @@
 #' @param X a matrix representing spatial coordinates of resulting chromatin reconstruction.
 #' @param index points where spline basis is evaluated; each corresponds to a particular genomic loci.
 #' @param type the type of plot returned. If \code{type = 'heatmap'}, the contact matrix approximation is returned. Set \code{type = 'projection'} and \code{type = '3D'} to output the projection and 3D model of chromatin conformation reconstruction, respectively.
+#' @param title optional, adds title to the plot. Default value \code{title = NULL}.
 #'
 #' @return Reconstruction plots.
 #'
@@ -31,9 +32,9 @@
 #'
 #' @export visualize
 
-visualize = function(X, index = 1:nrow(X), type = 'projection'){
+visualize = function(X, index = 1:nrow(X), type = 'projection', title = NULL){
   C_hat = X%*%t(X)
-  if(type == 'heatmap') return(fields::image.plot(C_hat, xaxt = 'n', yaxt = 'n'))
+  if(type == 'heatmap') return(fields::image.plot(C_hat, xaxt = 'n', yaxt = 'n', main = title))
 
   n = nrow(X)
   before_centromere = which(index < (n * 0.45))
@@ -49,9 +50,10 @@ visualize = function(X, index = 1:nrow(X), type = 'projection'){
     lines(x, y, col = 'orange', lwd = 2)
     lines(x[after_centromere], y[after_centromere], col = 'darkturquoise', lwd = 2)
   }
-  if(type == 'projection') return(pairs(X, panel = panelf, cex.labels = 5))
+  if(type == 'projection') return(pairs(X, panel = panelf, cex.labels = 5, main = title))
 
   if(type == '3D') return(plotly::plot_ly(x = X[,1], y = X[,2], z = X[,3], type = 'scatter3d', mode = 'lines+markers',
-              line = list(width = 6, color = col), marker = list(size = 3.5, color = col)))
+              line = list(width = 6, color = col), marker = list(size = 3.5, color = col))%>%
+                layout(title = title))
 }
 

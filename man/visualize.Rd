@@ -4,7 +4,7 @@
 \alias{visualize}
 \title{Reconstruction vizualization}
 \usage{
-visualize(X, index = 1:nrow(X), type = "projection")
+visualize(X, index = 1:nrow(X), type = "projection", title = NULL)
 }
 \arguments{
 \item{X}{a matrix representing spatial coordinates of resulting chromatin reconstruction.}
@@ -12,6 +12,8 @@ visualize(X, index = 1:nrow(X), type = "projection")
 \item{index}{points where spline basis is evaluated; each corresponds to a particular genomic loci.}
 
 \item{type}{the type of plot returned. If \code{type = 'heatmap'}, the contact matrix approximation is returned. Set \code{type = 'projection'} and \code{type = '3D'} to output the projection and 3D model of chromatin conformation reconstruction, respectively.}
+
+\item{title}{optional, adds title to the plot. Default value \code{title = NULL}.}
 }
 \value{
 Reconstruction plots.
