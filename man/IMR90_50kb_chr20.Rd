@@ -3,12 +3,12 @@
 \docType{data}
 \name{IMR90_50kb_chr20}
 \alias{IMR90_50kb_chr20}
-\title{Hi-C data for IMR90 cells for chromosomes 20 and resolutions 50kb obtained from the Gene Expression Omnibus}
+\title{Hi-C data for IMR90 cells}
 \format{A 1249x1249 symmetric nonnegative integer-valued matrix.}
 \usage{
 IMR90_50kb_chr20
 }
 \description{
-usage data(IMR90_50kb_chr20)
+Contact matrix calculated for chromosomes 20 and resolutions 50kb (obtained from the Gene Expression Omnibus).
 }
 \keyword{datasets}

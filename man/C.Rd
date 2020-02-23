@@ -3,12 +3,12 @@
 \docType{data}
 \name{C}
 \alias{C}
-\title{Example of a contact matrix}
+\title{Small contact matrix}
 \format{A 20x20 symmetric nonnegative integer-valued matrix.}
 \usage{
 C
 }
 \description{
-usage data(C)
+Example of a contact matrix.
 }
 \keyword{datasets}
