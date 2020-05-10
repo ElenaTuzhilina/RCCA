@@ -42,7 +42,7 @@ image.plot(Clog, xaxt='n', yaxt = 'n', mar = c(0, 2, 1, 2))
 Note that there are some unobserved loci near the centromere; we save the genomic coordinates of $599$ observed loci and drop unobserved ones from the contact matrix.
 
 ```{r, fig.height = 2.5, fig.width = 3.8, fig.align='center'}
-index = which(diag(C) != 0)
+index = which(colSums(C) != 0)
 n_obs = length(index)
 par(mar = c(0, 2, 1, 2))
 Clog = Clog[index, index]
