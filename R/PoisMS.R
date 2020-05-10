@@ -36,10 +36,6 @@
 #' @export PoisMS
 
 PoisMS = function(C, H, alpha = 1, beta = log(mean(C)), X0 = NULL, eps_wpcms = 1e-6, maxiter = 100, verbose_wpcms = FALSE, eps_poisms = 1e-6, maxepoch = 100, verbose_poisms = FALSE){
-  #Orthogonalize H
-  QR = qr(H)
-  H = qr.Q(QR)
-
   #Initialize
   pcms = PCMS((log(C + 1) - beta)/alpha, H)
   Theta = pcms$Theta

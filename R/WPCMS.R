@@ -39,10 +39,6 @@
 
 
 WPCMS = function(C, H, W = NULL, X0 = NULL, eps = 1e-6, maxiter = 100, verbose = FALSE){
-  #Orthogonalize H
-  QR = qr(H)
-  H = qr.Q(QR)
-
   #Initialize
   pcms = PCMS(C, H)
   Theta = pcms$Theta
