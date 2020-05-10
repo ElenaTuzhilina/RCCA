@@ -7,6 +7,6 @@ Use the following code to download the package:
 
 Check *R documentation* and *vignette* or visit website 
 
-**https://elenatuzhilina.github.io/PoisMS/**
+**https://elenatuzhilina.github.io/PoisMS/index.html**
 
 for function descriptions and examples.
