@@ -4,16 +4,27 @@
 \alias{WPCMS}
 \title{Weighted Principal Curve Metric Scaling}
 \usage{
-WPCMS(C, H, W = NULL, X0 = NULL, eps = 1e-06, maxiter = 100, verbose = FALSE)
+WPCMS(
+  Z,
+  H,
+  W = matrix(1, nrow(Z), ncol(Z)),
+  beta = NULL,
+  Theta0 = NULL,
+  eps = 1e-06,
+  maxiter = 100,
+  verbose = FALSE
+)
 }
 \arguments{
-\item{C}{a square symmetric matrix representing a Hi-C contact matrix.}
+\item{Z}{a square symmetric matrix.}
 
-\item{H}{a spline basis matrix. By default assumed to have orthogonal columns. If not, orthogonalized via QR decomposition.}
+\item{H}{a spline basis matrix. By default assumed to have orthogonal columns. If not, orthogonalization should be done via QR decomposition.}
 
-\item{W}{a weights matrix, same dimension as \code{C}. If \code{W = NULL}, the Principal Curve Metric Scaling solution is calculated.}
+\item{W}{a weights matrix, same dimension as \code{Z}. By default equal weights \code{W = 1} are assumed.}
 
-\item{X0}{an initialization for \eqn{X} of the WPCMS algorithm. If \code{X0 = NULL}, the PCMS warm start is considered.}
+\item{beta}{an intercept. Default option \code{beta = NULL}, i.e. the algorithm finds an optimal intercept value. Alternatively, fixed value \code{beta = const} can be considered.}
+
+\item{Theta0}{an initialization for spline basis coefficient matrix \eqn{Theta}. If \code{Theta0 = NULL}, a random initialization is considered.}
 
 \item{eps}{a positive convergence tolerance.}
 
@@ -26,17 +37,23 @@ A list containing the WPCMS problem solution:
 \itemize{
   \item \code{Theta} -- the matrix of spline parameters.
   \item \code{X} -- the resulting conformation reconstruction.
+  \item \code{beta} -- the resulting intercept value.
   \item \code{loss} -- the resulting value of the WPCMS loss.
   \item \code{iter} -- the total number of iterations.
+  \item \code{plot} -- the list of WPCMS plots: 'loss' corresponds to loss vs. iteration plot, 'intercept' represents beta vs. iteration plot.
 }
 }
 \description{
-WPCMS function calculates the Weighted Principal Curve Metric Scaling solution for a contact matrix \eqn{C} and a spline basis matrix \eqn{H}.
-The optimal solution is found via minimizing the weighted Frobenius norm \deqn{ \|W * (C-X X^T) \|^2_F }{|| W x (C - XX') ||} w.r.t. \eqn{\Theta} subject to the smooth curve constraint \eqn{X = H\Theta}.
+WPCMS function calculates the Weighted Principal Curve Metric Scaling solution for a contact matrix \eqn{Z} (e.g. representing a Hi-C contact matrix after some proper transformation applied) and a spline basis matrix \eqn{H}.
+The optimal solution is found via minimizing the weighted Frobenius norm \deqn{ \|W * (Z - D^2(X) + \beta) \|^2_F }{|| W x (Z - D^2(X) + \beta) ||} w.r.t. \eqn{\Theta} subject to the smooth curve constraint \eqn{X = H\Theta}.
+Here \eqn{D(X)} refers to the matrix of pairwise distances.
 The spatial coordiantes of the resulting reconstruction are presented in \eqn{X}.
 }
 \examples{
 data(C)
+
+#transform contact counts to distances
+Z = 1/(C+1)
 
 #create spline basis matrix
 H = splines::bs(1:ncol(C), df = 5)
@@ -44,11 +61,11 @@ H = splines::bs(1:ncol(C), df = 5)
 #orthogonalize H using QR decomposition
 H = qr.Q(qr(H))
 
-#W = NULL, the PCMS solution is calculated
-WPCMS(C, H)$X
+#run WPCMS with equal weights; optimize intercept 
+WPCMS(Z, H)$X
 
-#WPCMS solution for some random weights matrix W
-W = matrix(runif(length(C)), dim(C))
-WPCMS(C, H, W)$X
+#run WPCMS with random weights; fixed intercept
+W = matrix(runif(length(Z)), dim(Z))
+WPCMS(Z, H, W, beta = 1)$X
 
 }
