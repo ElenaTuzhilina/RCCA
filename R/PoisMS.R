@@ -144,7 +144,7 @@ PoisMS_rate = function(Theta, X_new, X, beta, loss, C, H){
   S_new = X_new %*% t(X_new)
   S_star = (1 - rate) * S + rate * S_new
   pcms = PCMS(S_star, H)
-  while(loss < loss_PoisMS(pcms$X, C, beta)){
+  while(loss < loss_PoisMS(pcms$X, C, beta) || pcms$rank < 3){
     rate = rate * 0.5
     S_star = (1 - rate) * S + rate * S_new
     pcms = PCMS(S_star, H)

@@ -126,7 +126,7 @@ gradient_step = function(S, G, rate){
 
 projection_step = function(S, H){
   pcms = PCMS(S, H)
-  return(list(Theta = pcms$Theta, X = pcms$X))
+  return(list(Theta = pcms$Theta, X = pcms$X, rank = pcms$rank))
 }
 
 WPCMS_rate = function(Theta, X, loss, Z, H, W){
@@ -135,7 +135,7 @@ WPCMS_rate = function(Theta, X, loss, Z, H, W){
   G = W * (Z - D^2)
   rate = 1
   pgd = projection_step(gradient_step(S, G, rate), H)
-  while(loss < loss_WPCMS(pgd$X, Z, W, 0)){
+  while(loss < loss_WPCMS(pgd$X, Z, W, 0) || pgd$rank < 3){
     rate = rate * 0.5
     pgd = projection_step(gradient_step(S, G, rate), H)
     if(rate < 1e-20) return(list(Theta = Theta, X = X, rate = 0))

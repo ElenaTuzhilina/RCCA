@@ -38,10 +38,11 @@ PCMS = function(Z, H){
   ED = eigen(t(H) %*% Z %*% H, symmetric = TRUE)
   U3 = ED$vectors[,1:3]
   d3 = ED$values[1:3]
+  rank = sum(d3 > 1e-12)
   d3 = pmax(d3, 0)
   Theta = U3%*%diag(sqrt(d3))
   X = H%*%Theta
-  return(list(Theta = Theta, X = X, loss = loss_PCMS(X, Z)))
+  return(list(Theta = Theta, X = X, loss = loss_PCMS(X, Z), rank = rank))
 }
 
 loss_PCMS = function(X, Z){
