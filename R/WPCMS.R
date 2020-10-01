@@ -7,9 +7,10 @@
 #'
 #' @param Z a square symmetric matrix.
 #' @param H a spline basis matrix. By default assumed to have orthogonal columns. If not, orthogonalization should be done via QR decomposition.
-#' @param beta an intercept. Default option \code{beta = NULL}, i.e. the algorithm finds an optimal intercept value. Alternatively, fixed value \code{beta = const} can be considered.
 #' @param W a weights matrix, same dimension as \code{Z}. By default equal weights \code{W = 1} are assumed.
-#' @param Theta0 an initialization for spline basis coefficient matrix \eqn{Theta}. If \code{Theta0 = NULL}, a random initialization is considered.
+#' @param beta0 an initialization for intercept \eqn{beta}. By default \code{beta0 = -min(Z).
+#' @param Theta0 an initialization for spline basis coefficient matrix \eqn{Theta}. By defaul \code{Theta0 = matrix(rnorm(ncol(H) * 3), ncol(H), 3)}, i.e. a random initialization is considered.
+#' @param update_beta If \code{update_beta = TRUE}, then the algorithm finds an optimal intercept value. If \code{update_beta = TRUE}, then the intercept is considered to be fixed and set to \code{beta0}.
 #' @param eps a positive convergence tolerance.
 #' @param maxiter an integer giving the maximal number of iterations.
 #' @param verbose logical. If \code{TRUE}, the WPCMS loss after each iteration is printed.
@@ -45,23 +46,15 @@
 #' @export WPCMS
 
 
-WPCMS = function(Z, H, W = matrix(1, nrow(Z), ncol(Z)), beta = NULL, Theta0 = NULL, eps = 1e-6, maxiter = 100, verbose = FALSE){
+WPCMS = function(Z, H, W = matrix(1, nrow(Z), ncol(Z)), beta0 = -min(Z), Theta0 = matrix(rnorm(ncol(H) * 3), ncol(H), 3), update_beta = TRUE, eps = 1e-6, maxiter = 100, verbose = FALSE){
   #Initialize
   n = nrow(H)
   df = ncol(H)
-  if(is.null(Theta0)){
-    Theta0 = matrix(rnorm(df * 3), df, 3)
-  } 
+  beta = beta0
+  betas = beta
   Theta = Theta0
   X = H %*% Theta
   X = scale(X, scale = FALSE, center = TRUE)
-  if(is.null(beta)){
-    update = TRUE
-    beta = update_beta_WPCMS(X, Z, W)
-  } else {
-    update = FALSE
-  } 
-  betas = beta
   loss = loss_WPCMS(X, Z, W, beta)
   losses = loss
   delta = Inf
@@ -80,7 +73,7 @@ WPCMS = function(Z, H, W = matrix(1, nrow(Z), ncol(Z)), beta = NULL, Theta0 = NU
     deltaX = vegan::procrustes(X, X_new, scale = FALSE, symmetric = TRUE)$ss
     X = X_new
     #Update beta
-    if(update) beta = update_beta_WPCMS(X, Z, W)
+    if(update_beta) beta = update_beta_WPCMS(X, Z, W)
     betas = c(betas, beta)
     #Update loss
     loss_new = loss_WPCMS(X, Z, W, beta)

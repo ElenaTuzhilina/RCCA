@@ -8,8 +8,9 @@
 #'
 #' @param C a square symmetric matrix representing a Hi-C contact matrix.
 #' @param H a spline basis matrix. By default assumed to have orthogonal columns. If not, orthogonalization should be done via QR decomposition.
-#' @param beta an intercept. Default option \code{beta = NULL}, i.e. the algorithm finds an optimal intercept value. Alternatively, fixed value \code{beta = const} can be considered.
-#' @param Theta0 an initialization for spline basis coefficient matrix \eqn{Theta}. If \code{Theta0 = NULL}, a random initialization is considered.
+#' @param beta0 an initialization for intercept \eqn{beta}. By default \code{beta0 = max(log(C))}.
+#' @param Theta0 an initialization for spline basis coefficient matrix \eqn{Theta}. By defaul \code{Theta0 = matrix(rnorm(ncol(H) * 3), ncol(H), 3)}, i.e. a random initialization is considered.
+#' @param update_beta If \code{update_beta = TRUE}, then the algorithm finds an optimal intercept value. If \code{update_beta = TRUE}, then the intercept is considered to be fixed and set to \code{beta0}.
 #' @param eps_wpcms,eps_poisms positive convergence tolerances for WPCMS inner loop and PoisMS outer loop.
 #' @param maxiter,maxepoch integers giving the maximal numbers of iterations for WPCMS inner loop and PoisMS outer loop.
 #' @param verbose_wpcms,verbose_poisms logical. If \code{TRUE}, the WPCMS loss after each iteration of inner loop and PoisMS loss after each epoch of outer loop are printed.
@@ -42,23 +43,15 @@
 #' @export PoisMS
 
 
-PoisMS = function(C, H, beta = NULL, Theta0 = NULL, eps_wpcms = 1e-6, maxiter = 100, verbose_wpcms = FALSE, eps_poisms = 1e-6, maxepoch = 100, verbose_poisms = FALSE){
+PoisMS = function(C, H, beta0 = max(log(C)), Theta0 = matrix(rnorm(ncol(H) * 3), ncol(H), 3), update_beta = TRUE, eps_wpcms = 1e-6, maxiter = 100, verbose_wpcms = FALSE, eps_poisms = 1e-6, maxepoch = 100, verbose_poisms = FALSE){
   #Initialize
   n = nrow(H)
   df = ncol(H)
-  if(is.null(Theta0)){
-    Theta0 = matrix(rnorm(df * 3), df, 3)
-  } 
+  beta = beta0
+  betas = beta
   Theta = Theta0
   X = H %*% Theta
   X = scale(X, scale = FALSE, center = TRUE)
-  if(is.null(beta)){
-    update = TRUE
-    beta = update_beta_PoisMS(X, C)
-  } else {
-    update = FALSE
-  }
-  betas = beta
   loss = loss_PoisMS(X, C, beta)
   losses = loss
   delta = Inf
@@ -76,7 +69,7 @@ PoisMS = function(C, H, beta = NULL, Theta0 = NULL, eps_wpcms = 1e-6, maxiter = 
     W = W/max(W)
     Z = soa$Z
     #WPCMS
-    wpcms = WPCMS(Z, H, W, beta, Theta, eps_wpcms, maxiter, verbose_wpcms)
+    wpcms = WPCMS(Z, H, W, beta, Theta, FALSE, eps_wpcms, maxiter, verbose_wpcms)
     iter_total = iter_total + wpcms$iter
     #Line search
     find = PoisMS_rate(Theta, wpcms$X, X, beta, loss, C, H)
@@ -87,7 +80,7 @@ PoisMS = function(C, H, beta = NULL, Theta0 = NULL, eps_wpcms = 1e-6, maxiter = 
     deltaX = vegan::procrustes(X, X_new, scale = TRUE, symmetric = TRUE)$ss
     X = X_new
     #Update alpha and beta
-    if(update) beta = update_beta_PoisMS(X, C)
+    if(update_beta) beta = update_beta_PoisMS(X, C)
     betas = c(betas, beta)
     #Update loss
     loss_new = loss_PoisMS(X, C, beta)

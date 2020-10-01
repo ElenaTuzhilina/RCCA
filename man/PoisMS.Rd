@@ -7,8 +7,9 @@
 PoisMS(
   C,
   H,
-  beta = NULL,
-  Theta0 = NULL,
+  beta0 = max(log(C)),
+  Theta0 = matrix(rnorm(ncol(H) * 3), ncol(H), 3),
+  update_beta = TRUE,
   eps_wpcms = 1e-06,
   maxiter = 100,
   verbose_wpcms = FALSE,
@@ -22,9 +23,11 @@ PoisMS(
 
 \item{H}{a spline basis matrix. By default assumed to have orthogonal columns. If not, orthogonalization should be done via QR decomposition.}
 
-\item{beta}{an intercept. Default option \code{beta = NULL}, i.e. the algorithm finds an optimal intercept value. Alternatively, fixed value \code{beta = const} can be considered.}
+\item{beta0}{an initialization for intercept \eqn{beta}. By default \code{beta0 = max(log(C))}.}
 
-\item{Theta0}{an initialization for spline basis coefficient matrix \eqn{Theta}. If \code{Theta0 = NULL}, a random initialization is considered.}
+\item{Theta0}{an initialization for spline basis coefficient matrix \eqn{Theta}. By defaul \code{Theta0 = matrix(rnorm(ncol(H) * 3), ncol(H), 3)}, i.e. a random initialization is considered.}
+
+\item{update_beta}{If \code{update_beta = TRUE}, then the algorithm finds an optimal intercept value. If \code{update_beta = TRUE}, then the intercept is considered to be fixed and set to \code{beta0}.}
 
 \item{eps_wpcms, eps_poisms}{positive convergence tolerances for WPCMS inner loop and PoisMS outer loop.}
 

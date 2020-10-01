@@ -8,8 +8,9 @@ WPCMS(
   Z,
   H,
   W = matrix(1, nrow(Z), ncol(Z)),
-  beta = NULL,
-  Theta0 = NULL,
+  beta0 = -min(Z),
+  Theta0 = matrix(rnorm(ncol(H) * 3), ncol(H), 3),
+  update_beta = TRUE,
   eps = 1e-06,
   maxiter = 100,
   verbose = FALSE
@@ -22,9 +23,9 @@ WPCMS(
 
 \item{W}{a weights matrix, same dimension as \code{Z}. By default equal weights \code{W = 1} are assumed.}
 
-\item{beta}{an intercept. Default option \code{beta = NULL}, i.e. the algorithm finds an optimal intercept value. Alternatively, fixed value \code{beta = const} can be considered.}
+\item{Theta0}{an initialization for spline basis coefficient matrix \eqn{Theta}. By defaul \code{Theta0 = matrix(rnorm(ncol(H) * 3), ncol(H), 3)}, i.e. a random initialization is considered.}
 
-\item{Theta0}{an initialization for spline basis coefficient matrix \eqn{Theta}. If \code{Theta0 = NULL}, a random initialization is considered.}
+\item{update_beta}{If \code{update_beta = TRUE}, then the algorithm finds an optimal intercept value. If \code{update_beta = TRUE}, then the intercept is considered to be fixed and set to \code{beta0}.}
 
 \item{eps}{a positive convergence tolerance.}
 
