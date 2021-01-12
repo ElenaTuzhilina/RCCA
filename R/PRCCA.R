@@ -65,7 +65,6 @@ PRCCA = function(X, Y, index1 = 1:ncol(X), index2 = 1:ncol(Y), lambda1 = 0, lamb
   n = nrow(X)
   p = ncol(X)
   q = ncol(Y)
-  n.comp = min(p,q)
   #Apply transformation to X
   penalty.X = rep(0, ncol(X))
   if(lambda1 > 0){
@@ -132,6 +131,7 @@ PRCCA = function(X, Y, index1 = 1:ncol(X), index2 = 1:ncol(Y), lambda1 = 0, lamb
   names(solution) = c("rho", "alpha", "beta")
   #find modified correlation
   rho.mod = solution$rho
+  n.comp = length(rho.mod)
   names(rho.mod) = paste('can.comp', 1:n.comp, sep = '')
   #find X canonical variates
   u = X %*% solution$alpha

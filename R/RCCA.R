@@ -70,7 +70,6 @@ RCCA = function(X, Y, lambda1 = 0, lambda2 = 0){
   n = nrow(X)
   p = ncol(X)
   q = ncol(Y)
-  n.comp = min(p,q)
   #compute R and V for matrix X
   if(p > n){
     SVD = svd(X)
@@ -95,6 +94,7 @@ RCCA = function(X, Y, lambda1 = 0, lambda2 = 0){
   names(solution) = c("rho", "alpha", "beta")
   #find modified correlation
   rho.mod = solution$rho
+  n.comp = length(rho.mod)
   names(rho.mod) = paste('can.comp', 1:n.comp, sep = '')
   #transform X coefficients back
   alpha = V.X %*% solution$alpha
