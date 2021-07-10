@@ -62,107 +62,111 @@
 PRCCA = function(X, Y, index1 = 1:ncol(X), index2 = 1:ncol(Y), lambda1 = 0, lambda2 = 0){
   X = as.matrix(X)
   Y = as.matrix(Y)
-  n = nrow(X)
+  n.comp = min(ncol(X), ncol(Y), nrow(X))
+  
+  #transform
+  X.tr = PRCCA.tr(X, index1, lambda1)
+  Y.tr = PRCCA.tr(Y, index2, lambda2)
+  if(is.null(X.tr) | is.null(Y.tr)) return(invisible(NULL))
+  
+  #solve optimization problem
+  Cxx = X.tr$cor
+  Cyy = Y.tr$cor
+  Cxy = cov(X.tr$mat, Y.tr$mat, use = "pairwise")
+  sol = fda::geigen(Cxy, Cxx, Cyy)
+  names(sol) = c("rho", "alpha", "beta")
+  #find modified correlation
+  rho.mod = sol$rho[1:n.comp]
+  names(rho.mod) = paste('can.comp', 1:n.comp, sep = '')
+  
+  #inverse transform
+  X.inv.tr = PRCCA.inv.tr(X.tr$mat, X.tr$p.pen, sol$alpha, X.tr$tr)
+  x.coefs = as.matrix(X.inv.tr$coefs[,1:n.comp])
+  rownames(x.coefs) = colnames(X)
+  x.vars = X.inv.tr$vars[,1:n.comp]
+  rownames(x.vars) = rownames(X)
+  Y.inv.tr = PRCCA.inv.tr(Y.tr$mat, Y.tr$p.pen, sol$beta, Y.tr$tr)
+  y.coefs = as.matrix(Y.inv.tr$coefs[,1:n.comp])
+  rownames(y.coefs) = colnames(Y)
+  y.vars = Y.inv.tr$vars[,1:n.comp]
+  rownames(y.vars) = rownames(Y)
+  #canonical correlation
+  rho = diag(cor(X.inv.tr$vars,  Y.inv.tr$vars))[1:n.comp]
+  names(rho) = paste('can.comp', 1:n.comp, sep = '')
+  return(list('n.comp' = n.comp, 'cors' = rho, 'mod.cors' = rho.mod, 'x.coefs' = x.coefs, 'x.vars' = x.vars, 'y.coefs' = y.coefs, 'y.vars' = y.vars))
+}
+
+
+
+PRCCA.tr = function(X, index, lambda){
   p = ncol(X)
-  q = ncol(Y)
-  #Apply transformation to X
-  penalty.X = rep(0, ncol(X))
-  if(lambda1 > 0){
-    X1 = X[, index1, drop=FALSE]
-    X2 = X[, -index1, drop=FALSE]
-    n1.X = length(index1)
-    permute.X = order(c(index1, (1:p)[-index1]))
-    if(ncol(X2) > n){
-      cat('PRCCA is not possible!')
-      return(NULL)
+  n = nrow(X)
+  if(lambda < 0){
+    cat('please make', deparse(substitute(lambda)),'>= 0\n')
+    return()
+  }
+  if(is.null(index)){
+    lambda = 0
+    index = 1:p
+  } 
+  if(lambda == 0 & p > n){
+      cat('singularity issue. please impose a penalty on', deparse(substitute(X)), 'side\n')
+      return()
+  } 
+  penalty = rep(0, p)
+  permute = NULL
+  B = NULL
+  V = NULL
+  p1 = length(index)
+  if(lambda > 0){
+    X1 = X[, index, drop = FALSE]
+    X2 = X[, -index, drop = FALSE]
+    permute = order(c(index, (1:p)[-index]))
+    if(ncol(X2) >= n){
+      cat('singularity issue. please penalize more',deparse(substitute(X)) ,'features\n')
+      return()
     }
-    B.X = NULL
     if(ncol(X2) > 0){
       #regress X2 from X1
-      B.X = solve(t(X2) %*% X2) %*% t(X2) %*% X1
-      X1 = X1 - X2 %*% B.X
+      B = solve(t(X2) %*% X2) %*% t(X2) %*% X1
+      X1 = X1 - X2 %*% B
     }
-    V.X = NULL
     if(ncol(X1) > n){
       #apply kernel trick
       SVD = svd(X1)
       X1 = SVD$u %*% diag(SVD$d)
-      V.X = SVD$v
-      n1.X = ncol(V.X)
+      V = SVD$v
+      p1 = ncol(X1)
     }
+    p1 = ncol(X1)
     X = cbind(X1, X2)
-    penalty.X = rep(0, ncol(X))
-    penalty.X[1:ncol(X1)] = lambda1
+    penalty = rep(0, ncol(X))
+    penalty[1:p1] = lambda
   }
-  #Apply transformation to Y
-  penalty.Y = rep(0, ncol(Y))
-  if(lambda2 > 0){
-    Y1 = Y[, index2, drop=FALSE]
-    Y2 = Y[, -index2, drop=FALSE]
-    n1.Y = length(index2)
-    permute.Y = order(c(index2, (1:q)[-index2]))
-    if(ncol(Y2) > n){
-      cat('PRCCA is not possible!')
-      return(NULL)
-    }
-    B.Y = NULL
-    if(ncol(Y2) > 0){
-      #regress Y2 from Y1
-      B.Y = solve(t(Y2) %*% Y2) %*% t(Y2) %*% Y1
-      Y1 = Y1 - Y2 %*% B.Y
-    }
-    V.Y = NULL
-    if(ncol(Y1) > n){
-      #apply kernel trick
-      SVD = svd(Y1)
-      Y1 = SVD$u %*% diag(SVD$d)
-      V.Y = SVD$v
-      n1.Y = ncol(V.Y)
-    }
-    Y = cbind(Y1, Y2)
-    penalty.Y = rep(0, ncol(Y))
-    penalty.Y[1:ncol(Y1)] = lambda2
-  }
-  #compute canonical variates
-  Cxx = var(X, use = "pairwise") + diag(penalty.X)
-  Cyy = var(Y, use = "pairwise") + diag(penalty.Y)
-  Cxy = cov(X, Y, use = "pairwise")
-  solution = fda::geigen(Cxy, Cxx, Cyy)
-  names(solution) = c("rho", "alpha", "beta")
-  #find modified correlation
-  rho.mod = solution$rho
-  n.comp = length(rho.mod)
-  names(rho.mod) = paste('can.comp', 1:n.comp, sep = '')
-  #find X canonical variates
-  u = X %*% solution$alpha
-  colnames(u) = paste('can.comp', 1:n.comp, sep = '')
-  #transform X coefficients back
-  alpha = solution$alpha
+  C = var(X, use = "pairwise")
+  diag(C) = diag(C) + penalty
+  return(list('mat' = X, 'p.pen' = p1, 'tr' = list('reg' = B, 'ker' = V, 'perm' = permute), 'cor' = C))
+}
+
+
+
+PRCCA.inv.tr = function(X, p1, alpha, tr){
+  n.comp = ncol(alpha)
   colnames(alpha) = paste('can.comp', 1:n.comp, sep = '')
-  if(lambda1 > 0){
-    alpha1 = alpha[1:n1.X, , drop=FALSE]
-    alpha2 = alpha[-(1:n1.X), , drop=FALSE]
-    if(!is.null(V.X)) alpha1 = V.X %*% alpha1
-    if(!is.null(B.X)) alpha2 = -B.X %*% alpha1 + alpha2
+  V = tr$ker
+  B = tr$reg 
+  permute = tr$perm
+  #find canonical variates
+  u = X %*% alpha
+  colnames(u) = paste('can.comp', 1:n.comp, sep = '')
+  #inverse transfrom canonical coefficients
+  if(!is.null(p1)){
+    alpha1 = alpha[1:p1, , drop = FALSE]
+    alpha2 = alpha[-(1:p1), , drop = FALSE]
+    if(!is.null(V)) alpha1 = V %*% alpha1
+    if(!is.null(B)) alpha2 = -B %*% alpha1 + alpha2
     alpha = rbind(alpha1, alpha2)
-    alpha = alpha[permute.X, ]
+    if(!is.null(permute)) alpha = alpha[permute, ]
   }
-  #find Y canonical variates
-  v = Y %*% solution$beta
-  colnames(v) = paste('can.comp', 1:n.comp, sep = '')
-  #transform Y coefficients back
-  beta = solution$beta
-  colnames(beta) = paste('can.comp', 1:n.comp, sep = '')
-  if(lambda2 > 0){
-    beta1 = beta[1:n1.Y, , drop=FALSE]
-    beta2 = beta[-(1:n1.Y), , drop=FALSE]
-    if(!is.null(V.Y)) beta1 = V.Y %*% beta1
-    if(!is.null(B.Y)) beta2 = -B.Y %*% beta1 + beta2
-    beta = rbind(beta1, beta2)
-    beta = beta[permute.Y, ]
-  }
-  #find correlation
-  rho = diag(cor(u,  v))
-  names(rho) = paste('can.comp', 1:n.comp, sep = '')
-  return(list('n.comp' = n.comp, 'cors' = rho, 'mod.cors' = rho.mod, 'x.coefs' = alpha, 'x.vars' = u, 'y.coefs' = beta, 'y.vars' = v))
+  return(list('coefs' = alpha, 'vars' = u))
 }

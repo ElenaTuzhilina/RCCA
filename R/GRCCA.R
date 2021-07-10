@@ -75,147 +75,91 @@
 #' barplot(grcca$x.coefs[,'can.comp1'], col = 'orange', 'xlab' = 'X feature', ylab = 'value')
 #' 
 #' @export GRCCA
-
-
+#' 
 
 GRCCA = function(X, Y, group1 = rep(1, ncol(X)), group2 = rep(1, ncol(Y)), lambda1 = 0, lambda2 = 0, mu1 = 0, mu2 = 0){
-  if(mu1 == 0 & mu2 == 0) GRCCA.var(X, Y, group1, group2, lambda1, lambda2)
-  else GRCCA.mean.var(X, Y, group1, group2, lambda1, lambda2, mu1, mu2)
+  X = as.matrix(X)
+  Y = as.matrix(Y)
+  n.comp = min(ncol(X), ncol(Y), nrow(X))
+  
+  #transform
+  X.tr = GRCCA.tr(X, group1, lambda1, mu1)
+  Y.tr = GRCCA.tr(Y, group2, lambda2, mu2)
+  if(is.null(X.tr) | is.null(Y.tr)) return(invisible(NULL))
+  
+  #solve optimization problem
+  sol = PRCCA(X.tr$mat, Y.tr$mat, X.tr$ind, Y.tr$ind, 1, 1)
+  mod.cors = sol$mod.cors[1:n.comp]
+  
+  #inverse transform
+  X.inv.tr = GRCCA.inv.tr(sol$x.coefs, group1, lambda1, mu1)
+  x.coefs = as.matrix(X.inv.tr$coefs[,1:n.comp])
+  rownames(x.coefs) = colnames(X)
+  x.vars = sol$x.vars[,1:n.comp]
+  rownames(x.vars) = rownames(X)
+  Y.inv.tr = GRCCA.inv.tr(sol$y.coefs, group2, lambda2, mu2)
+  y.coefs = as.matrix(Y.inv.tr$coefs[,1:n.comp])
+  rownames(y.coefs) = colnames(Y)
+  y.vars = sol$y.vars[,1:n.comp]
+  rownames(y.vars) = rownames(Y)
+  rho = diag(cor(x.vars,  y.vars))[1:n.comp]
+  names(rho) = paste('can.comp', 1:n.comp, sep = '')
+  return(list('n.comp' = n.comp, 'cors' = rho, 'mod.cors' = mod.cors, 'x.coefs' = x.coefs, 'x.vars' = x.vars, 'y.coefs' = y.coefs, 'y.vars' = y.vars))
 }
   
 
-#######GRCCA both penalties#########
-
-GRCCA.mean.var = function(X, Y, group1, group2, lambda1, lambda2, mu1, mu2){
-  n = nrow(X)
-  p = ncol(X)
-  q = ncol(Y)
-  n.comp = min(p,q)
-  nu1 = mu1/lambda1
-  nu2 = mu2/lambda2
-  #create extended matrix for X
-  colnames(X) = group1
-  X.ext = X
-  if(!is.null(group1)){
-    group.names.X = unique(sort(group1))
-    ps = table(group1)
-    agg = aggregate(t(X), by = list(group1), FUN = mean)
+GRCCA.tr = function(X, group, lambda, mu){
+  if(is.null(group)){
+    lambda = 0
+    mu = 0
+  } 
+  if(lambda < 0){
+    cat('please make', deparse(substitute(lambda)),'> 0\n')
+    return(NULL)
+  }
+  if(mu < 0){
+    cat('please make', deparse(substitute(mu)),'> 0\n')
+    return(NULL)
+  }
+  index = NULL
+  if(lambda > 0){
+    #extend matrix
+    group.names = unique(sort(group))
+    ps = table(group)
+    agg = aggregate(t(X), by = list(group), FUN = mean)
     X.mean = t(agg[, -1])
     colnames(X.mean) = agg[, 1] 
-    if(nu1 <= 0){
-      cat('nu1 <= 0. This type of GRCCA does not work!')
-      return(NULL)
+    if(mu == 0){
+      mu = 1
+      index = 1:ncol(X)
+    } else {
+      index = 1:(ncol(X) + ncol(X.mean))
     }
-    X.mean.scaled = scale(X.mean[,group.names.X], center = FALSE, scale = sqrt(nu1/ps[group.names.X]))
-    X.ext = cbind(X - X.mean[,group1], X.mean.scaled)
+    X1 = 1/sqrt(lambda) * (X - X.mean[,group])
+    X2 = scale(X.mean[,group.names], center = FALSE, scale = sqrt(mu/ps[group.names]))
+    X = cbind(X1, X2)
   }
-  #create extended matrix for Y
-  colnames(Y) = group2
-  Y.ext = Y
-  if(!is.null(group2)){
-    group.names.Y = unique(sort(group2))
-    qs = table(group2)
-    agg = aggregate(t(Y), by = list(group2), FUN = mean)
-    Y.mean = t(agg[, -1])
-    colnames(Y.mean) = agg[, 1]
-    if(nu2 <= 0){
-      cat('nu2 <= 0. This type of GRCCA does not work!')
-      return(NULL)
-    }
-    Y.mean.scaled = scale(Y.mean[,group.names.Y], center = FALSE, scale = sqrt(nu2/qs[group.names.Y]))
-    Y.ext = cbind(Y - Y.mean[,group2], Y.mean.scaled)
-  }
-  #run RCCA for extended matrices
-  solution = RCCA(X.ext, Y.ext, lambda1, lambda2)
-  #transform X coefficients back
-  alpha =  solution$x.coefs
-  colnames(alpha) = paste('can.comp', 1:n.comp, sep = '')
-  if(!is.null(group1)){
-    rownames(alpha) = colnames(X.ext)
-    alpha.X.mean = alpha[-(1:p),]
-    alpha.X.mean = t(scale(t(alpha.X.mean), center = FALSE, scale = sqrt(ps[rownames(alpha.X.mean)] * nu1)))
-    alpha.X = alpha[1:p,]
-    alpha = alpha.X + alpha.X.mean[group1,]
-  }
-  #transform Y coefficients back
-  beta =  solution$y.coefs
-  colnames(beta) = paste('can.comp', 1:n.comp, sep = '')
-  if(!is.null(group2)){
-    rownames(beta) = colnames(Y.ext)
-    beta.Y.mean = beta[-(1:q),]
-    beta.Y.mean = t(scale(t(beta.Y.mean), center = FALSE, scale = sqrt(qs[rownames(beta.Y.mean)] * nu2)))
-    beta.Y = beta[1:q,]
-    beta = beta.Y + beta.Y.mean[group2,]
-  }
-  #find correlation
-  rho = diag(cor(solution$x.vars,  solution$y.vars))
-  names(rho) = paste('can.comp', 1:n.comp, sep = '')
-  return(list('n.comp' = n.comp, 'cors' = rho, 'mod.cors' = solution$mod.cors, 'x.coefs' = alpha, 'x.vars' = solution$x.vars, 'y.coefs' = beta, 'y.vars' = solution$y.vars))
+  return(list('mat' = X, 'ind' = index))
 }
 
-
-
-#######GRCCA one penalty#########
-
-GRCCA.var = function(X, Y, group1, group2, lambda1, lambda2){
-  n = nrow(X)
-  p = ncol(X)
-  q = ncol(Y)
-  n.comp = min(p,q)
-  #create extended matrix for X
-  colnames(X) = group1
-  X.ext = X
-  if(lambda1 > 0){
-    group.names.X = unique(sort(group1))
-    ps = table(group1)
-    agg = aggregate(t(X), by = list(group1), FUN = mean)
-    X.mean = t(agg[, -1])
-    colnames(X.mean) = agg[, 1] 
-    if(length(group.names.X) > n){
-      cat('groups > n. This type of GRCCA does not work!')
-      return(NULL)
-    }
-    X.mean.scaled = scale(X.mean[,group.names.X], center = FALSE, scale = sqrt(1/ps[group.names.X]))
-    X.ext = cbind(X - X.mean[,group1], X.mean.scaled)
+GRCCA.inv.tr = function(alpha, group, lambda, mu){
+  if(is.null(group)){
+    lambda = 0
+    mu = 0
+  } 
+  if(lambda > 0){
+    p = length(group)
+    group.names = unique(sort(group))
+    ps = table(group)
+    alpha1 = alpha[1:p,]
+    alpha2 = alpha[-(1:p),]
+    agg = aggregate(alpha1, by = list(group), FUN = mean)
+    alpha1.mean = agg[, -1]
+    rownames(alpha1.mean) = agg[, 1]
+    alpha1 = 1/sqrt(lambda) * (alpha1 - alpha1.mean[group,])
+    if(mu == 0) mu = 1
+    alpha2 = t(scale(t(alpha2[group.names,]), center = FALSE, scale = sqrt(mu*ps[group.names])))
+    alpha = alpha1 + alpha2[group,]
   }
-  #create extended matrix for Y
-  colnames(Y) = group2
-  Y.ext = Y
-  if(lambda2 > 0){
-    group.names.Y = unique(sort(group2))
-    qs = table(group2)
-    agg = aggregate(t(Y), by = list(group2), FUN = mean)
-    Y.mean = t(agg[, -1])
-    colnames(Y.mean) = agg[, 1]
-    if(length(group.names.Y) > n){
-      cat('groups > n. This type of GRCCA does not work!')
-      return(NULL)
-    }
-    Y.mean.scaled = scale(Y.mean[,group.names.Y], center = FALSE, scale = sqrt(1/qs[group.names.Y]))
-    Y.ext = cbind(Y - Y.mean[,group2], Y.mean.scaled)
-  }
-  #run RCCA for extended matrices
-  solution = PRCCA(X.ext, Y.ext, 1:p, 1:q, lambda1, lambda2)
-  #transform X coefficients back
-  alpha =  solution$x.coefs
-  if(lambda1 > 0){
-    rownames(alpha) = colnames(X.ext)
-    alpha.X.mean = alpha[-(1:p),]
-    alpha.X.mean = t(scale(t(alpha.X.mean), center = FALSE, scale = sqrt(ps[rownames(alpha.X.mean)])))
-    alpha.X = alpha[1:p,]
-    alpha = alpha.X + alpha.X.mean[group1,]
-  }
-  #transform Y coefficients back
-  beta =  solution$ycoef
-  if(lambda2 > 0){
-    rownames(beta) = colnames(Y.ext)
-    beta.Y.mean = beta[-(1:q),]
-    beta.Y.mean = t(scale(t(beta.Y.mean), center = FALSE, scale = sqrt(qs[rownames(beta.Y.mean)])))
-    beta.Y = beta[1:q,]
-    beta = beta.Y + beta.Y.mean[group2,]
-  }
-  #find correlation
-  rho = diag(cor(solution$x.vars,  solution$y.vars))
-  names(rho) = paste('can.comp', 1:n.comp, sep = '')
-  return(list('n.comp' = n.comp, 'cors' = rho, 'mod.cors' = solution$mod.cors, 'x.coefs' = alpha, 'x.vars' = solution$x.vars, 'y.coefs' = beta, 'y.vars' = solution$y.vars))
+  return(list('coefs' = alpha))
 }

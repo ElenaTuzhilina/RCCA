@@ -67,49 +67,72 @@
 RCCA = function(X, Y, lambda1 = 0, lambda2 = 0){
   X = as.matrix(X)
   Y = as.matrix(Y)
-  n = nrow(X)
+  n.comp = min(ncol(X), ncol(Y), nrow(X))
+  
+  #transform
+  X.tr = RCCA.tr(X, lambda1)
+  Y.tr = RCCA.tr(Y, lambda2)
+  if(is.null(X.tr) | is.null(Y.tr)) return(invisible(NULL))
+  
+  #solve optimization problem
+  Cxx = X.tr$cor
+  Cyy = Y.tr$cor
+  Cxy = cov(X.tr$mat, Y.tr$mat, use = "pairwise")
+  sol = fda::geigen(Cxy, Cxx, Cyy)
+  names(sol) = c("rho", "alpha", "beta")
+  #modified canonical correlation
+  rho.mod = sol$rho[1:n.comp]
+  names(rho.mod) = paste('can.comp', 1:n.comp, sep = '')
+  
+  #inverse transform
+  X.inv.tr = RCCA.inv.tr(X.tr$mat, sol$alpha, X.tr$tr)
+  x.coefs = as.matrix(X.inv.tr$coefs[,1:n.comp])
+  rownames(x.coefs) = colnames(X)
+  x.vars = X.inv.tr$vars[,1:n.comp]
+  rownames(x.vars) = rownames(X)
+  Y.inv.tr = RCCA.inv.tr(Y.tr$mat, sol$beta, Y.tr$tr)
+  y.coefs = as.matrix(Y.inv.tr$coefs[,1:n.comp])
+  rownames(y.coefs) = colnames(Y)
+  y.vars = Y.inv.tr$vars[,1:n.comp]
+  rownames(y.vars) = rownames(Y)
+  
+  #canonical correlation
+  rho = diag(cor(X.inv.tr$vars,  Y.inv.tr$vars))[1:n.comp]
+  names(rho) = paste('can.comp', 1:n.comp, sep = '')
+  
+  return(list('n.comp' = n.comp, 'cors' = rho, 'mod.cors' = rho.mod, 'x.coefs' = x.coefs, 'x.vars' = x.vars, 'y.coefs' = y.coefs, 'y.vars' = y.vars))
+}
+
+RCCA.tr = function(X, lambda){
   p = ncol(X)
-  q = ncol(Y)
-  #compute R and V for matrix X
+  n = nrow(X)
+  if(lambda < 0){
+    cat('please make', deparse(substitute(lambda)),'>= 0\n')
+    return()
+  }
+  #kernel trick
+  V = NULL
   if(p > n){
+    if(lambda == 0){
+      cat('singularity issue. please impose a penalty on', deparse(substitute(X)), 'side\n')
+      return()
+    }
     SVD = svd(X)
     X = SVD$u %*% diag(SVD$d)
-    V.X = SVD$v
-  } else {
-    V.X = diag(ncol(X))
+    V = SVD$v
   }
-  #compute R and V for matrix Y
-  if(q > n){
-    SVD = svd(Y)
-    Y = SVD$u %*% diag(SVD$d)
-    V.Y = SVD$v
-  } else {
-    V.Y = diag(ncol(Y))
-  }
-  #compute canonical variates
-  Cxx = var(X, use = "pairwise") + diag(lambda1, ncol(X))
-  Cyy = var(Y, use = "pairwise") + diag(lambda2, ncol(Y))
-  Cxy = cov(X, Y, use = "pairwise")
-  solution = fda::geigen(Cxy, Cxx, Cyy)
-  names(solution) = c("rho", "alpha", "beta")
-  #find modified correlation
-  rho.mod = solution$rho
-  n.comp = length(rho.mod)
-  names(rho.mod) = paste('can.comp', 1:n.comp, sep = '')
-  #transform X coefficients back
-  alpha = V.X %*% solution$alpha
-  colnames(alpha) = paste('can.comp', 1:n.comp, sep = '')
-  #find X canonical variates
-  u = X %*% solution$alpha
+  C = var(X, use = "pairwise")
+  diag(C) = diag(C) + lambda
+  return(list('mat' = X, 'tr' = V, 'cor' = C))
+}
+
+RCCA.inv.tr = function(X, alpha, V){
+  n.comp = ncol(alpha)
+  #find canonical variates
+  u = X %*% alpha
   colnames(u) = paste('can.comp', 1:n.comp, sep = '')
-  #transform Y coefficients back
-  beta = V.Y %*% solution$beta
-  colnames(beta) = paste('can.comp', 1:n.comp, sep = '')
-  #find Y canonical variates
-  v = Y %*% solution$beta
-  colnames(v) = paste('can.comp', 1:n.comp, sep = '')
-  #find correlation
-  rho = diag(cor(u,  v))
-  names(rho) = paste('can.comp', 1:n.comp, sep = '')
-  return(list('n.comp' = n.comp, 'cors' = rho, 'mod.cors' = rho.mod, 'x.coefs' = alpha, 'x.vars' = u, 'y.coefs' = beta, 'y.vars' = v))
+  #inverse transfrom canonical coefficients 
+  if(!is.null(V)) alpha = V %*% alpha
+  colnames(alpha) = paste('can.comp', 1:n.comp, sep = '')
+  return(list('coefs' = alpha, 'vars' = u))
 }
